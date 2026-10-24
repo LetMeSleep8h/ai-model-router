@@ -1,4 +1,4 @@
-﻿import time
+import time
 import asyncio
 from typing import List, Optional, Tuple, Dict, Any
 from app.models.schemas import ProviderResponse, ModelMetadata
@@ -79,10 +79,13 @@ async def execute_with_fallback(
 
     # Step 2: Determine Fallback Candidate
     fallback_used = True
-    # Priority: Mock model of same or balanced tier, or active local Ollama
+    # Priority: Mock model or alternative healthy active provider (excluding the failed provider)
     candidate_fallbacks = [
         m for m in all_models
-        if m.id != selected_model_id and m.is_active and (m.provider == "mock" or m.type == "LOCAL")
+        if m.id != selected_model_id
+        and m.is_active
+        and m.provider != current_provider_id
+        and (m.provider == "mock" or circuit_breaker.is_available(m.provider))
     ]
     if not candidate_fallbacks:
         candidate_fallbacks = [m for m in all_models if m.id != selected_model_id and m.is_active]

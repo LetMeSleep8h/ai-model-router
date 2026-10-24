@@ -1,11 +1,14 @@
 import json
+from unittest.mock import patch
 import pytest
 from typer.testing import CliRunner
 from app.cli.main import app
 
 runner = CliRunner()
 
-def test_cli_doctor_json():
+@patch("httpx.get")
+def test_cli_doctor_json(mock_get):
+    mock_get.side_effect = Exception("Ollama not running")
     result = runner.invoke(app, ["doctor", "--json"])
     assert result.exit_code == 0
     data = json.loads(result.stdout)

@@ -691,6 +691,7 @@ async def traffic_stream():
         seen_order = initial_seen_order if initial_seen_order is not None else deque()
         try:
             # 2. Fetch and send initial database snapshot if not already queued or seen
+            initial_snapshot_event = None
             async with AsyncSessionLocal() as session:
                 res = await session.execute(
                     select(RequestRecord).order_by(desc(RequestRecord.timestamp)).limit(1)
@@ -702,10 +703,13 @@ async def traffic_stream():
                     if latest.request_id not in queued_ids and latest.request_id not in seen_ids:
                         seen_ids.add(latest.request_id)
                         seen_order.append(latest.request_id)
-                        yield {
+                        initial_snapshot_event = {
                             "event": "traffic_event",
                             "data": json.dumps(build_traffic_event_payload(latest)),
                         }
+
+            if initial_snapshot_event:
+                yield initial_snapshot_event
 
             # 3. Process queued events and wait without database polling
             while True:
@@ -738,6 +742,7 @@ async def traffic_stream():
             try:
                 await pubsub.subscribe("traffic_stream")
                 # 1. Initial snapshot from database
+                initial_redis_event = None
                 async with AsyncSessionLocal() as session:
                     res = await session.execute(
                         select(RequestRecord).order_by(desc(RequestRecord.timestamp)).limit(1)
@@ -746,10 +751,13 @@ async def traffic_stream():
                     if latest:
                         seen_ids.add(latest.request_id)
                         seen_order.append(latest.request_id)
-                        yield {
+                        initial_redis_event = {
                             "event": "traffic_event",
                             "data": json.dumps(build_traffic_event_payload(latest)),
                         }
+
+                if initial_redis_event:
+                    yield initial_redis_event
 
                 # 2. Stream live events from Redis Pub/Sub
                 async for message in pubsub.listen():

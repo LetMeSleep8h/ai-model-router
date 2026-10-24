@@ -36,7 +36,7 @@ async def test_api_route_only():
 async def test_api_generate_end_to_end():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        payload = {"prompt": "Debug this memory leak in python subprocess", "policy": "balanced"}
+        payload = {"prompt": "Debug this memory leak in python subprocess", "policy": "balanced", "force_model": "mock-balanced"}
         res = await client.post("/api/generate", json=payload)
         assert res.status_code == 200
         data = res.json()
@@ -72,7 +72,7 @@ async def test_api_traffic_export_json_contains_audit_fields():
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         generate_res = await client.post(
             "/api/generate",
-            json={"prompt": "Write a Python function for a traffic export"},
+            json={"prompt": "Write a Python function for a traffic export", "force_model": "mock-balanced"},
         )
         assert generate_res.status_code == 200
 
@@ -104,7 +104,7 @@ async def test_api_traffic_export_csv_returns_downloadable_rows():
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         generate_res = await client.post(
             "/api/generate",
-            json={"prompt": "Summarize this traffic record"},
+            json={"prompt": "Summarize this traffic record", "force_model": "mock-balanced"},
         )
         assert generate_res.status_code == 200
 
@@ -126,11 +126,12 @@ async def test_api_traffic_export_rejects_unknown_format():
 
     assert export_res.status_code == 422
 
+
 @pytest.mark.asyncio
 async def test_api_generate_streaming():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        payload = {"prompt": "Hello", "policy": "balanced", "stream": True}
+        payload = {"prompt": "Hello", "policy": "balanced", "stream": True, "force_model": "mock-fast"}
         async with client.stream("POST", "/api/generate", json=payload) as response:
             assert response.status_code == 200
             events = []

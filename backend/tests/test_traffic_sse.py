@@ -108,6 +108,7 @@ class ASGIStreamTestClient:
         """Signal client disconnect and wait for the ASGI task to terminate cleanly."""
         if self.disconnect_event and not self.disconnect_event.is_set():
             self.disconnect_event.set()
+        await asyncio.sleep(0.05)
         if self.app_task:
             try:
                 await asyncio.wait_for(asyncio.shield(self.app_task), timeout=0.5)
